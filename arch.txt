@@ -1,0 +1,28 @@
+ENTITIES
+
+App:
+    windows
+    current_window
+    buffers
+
+    load_buffer(file_path)
+    run()
+    display_windows()
+
+Window:
+    rows, cols
+    x, y
+    buffer
+
+    display()
+    handle_key(ch)
+
+Buffer:
+    lines
+    cursor_pos
+
+
+keymaps [mode][key][action]
+
+Plan:
+1. Memory + dynamic array
