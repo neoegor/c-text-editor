@@ -3,10 +3,12 @@
 
 #include "common.h"
 #include "buffer.h"
+#include "window.h"
 
 typedef struct {
     bool running;
     Buffer buffer;
+    Window window;
 } App;
 
 void app_init(App* app);

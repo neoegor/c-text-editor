@@ -13,16 +13,17 @@ Window:
     rows, cols
     x, y
     buffer
+    cursor_line
+    cursor_col
 
-    display()
+    draw()
     handle_key(ch)
 
 Buffer:
     lines
-    cursor_pos
 
-
-keymaps [mode][key][action]
-
-Plan:
-1. Memory + dynamic array
+TODO
+- [x] Memory + dynamic array 
+- [x] Window
+- [x] Move cursor
+- [ ] Gap Buffer

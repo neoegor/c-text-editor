@@ -12,6 +12,8 @@ typedef struct {
 void buffer_init(Buffer* buffer);
 void buffer_insert_ch(Buffer* buffer, char ch);
 void buffer_delete_ch(Buffer* buffer);
+void buffer_insert_at(Buffer* buffer, int col, char ch);
+void buffer_delete_at(Buffer* buffer, int col);
 void buffer_free(Buffer* buffer);
 void buffer_print(Buffer* buffer);
 
