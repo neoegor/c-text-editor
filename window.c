@@ -12,7 +12,20 @@ void window_init(Window* window, Rect rect, Buffer* buffer) {
 }
 
 void window_draw(Window* window) {
-    printw("%s", window->buffer->chars);
+    for (size_t line = 0; line < window->buffer->count; line++) {
+        // for (size_t col = 0; col < gb_length(&window->buffer->lines[line]); col++) {
+        for (size_t col = 0; col < window->buffer->lines[line].capacity; col++) {
+            GapBuffer* gb = &window->buffer->lines[line];
+            if (col >= gb->gap_index && col < gb->gap_index+gb->gap_length) {
+                // mvaddch(line, col, '_');
+                continue;
+            } else if (col < gb->gap_index) {
+                mvaddch(line, col, gb->chars[col]);
+            } else {
+                mvaddch(line, col-gb->gap_length, gb->chars[col]);
+            }
+        }
+    }
     move(window->cursor_line, window->cursor_col);
 }
 
@@ -38,8 +51,8 @@ static void window_move_right(Window* window) {
 
 void window_handle_key(Window* window, int key) {
     if (key == KEY_BACKSPACE || key == 127) {
-        buffer_delete_at(window->buffer, window->cursor_col);
         window_move_left(window);
+        buffer_delete_at(window->buffer, 0, window->cursor_col);
     } else if (key == KEY_UP) {
         window_move_up(window);
     } else if (key == KEY_DOWN) {
@@ -49,7 +62,7 @@ void window_handle_key(Window* window, int key) {
     } else if (key == KEY_RIGHT) {
         window_move_right(window);
     } else {
-        buffer_insert_at(window->buffer, window->cursor_col, key);
+        buffer_insert_at(window->buffer, 0, window->cursor_col, key);
         window_move_right(window);
     }
 }

@@ -3,18 +3,24 @@
 
 #include "common.h"
 
+#define GAP_SIZE 32
+
 typedef struct {
     char* chars;
-    int count;
-    int capacity;
+    size_t gap_index;
+    size_t gap_length;
+    size_t capacity;
+} GapBuffer;
+
+typedef struct {
+    GapBuffer* lines;
+    size_t count;
+    size_t capacity;
 } Buffer;
 
 void buffer_init(Buffer* buffer);
-void buffer_insert_ch(Buffer* buffer, char ch);
-void buffer_delete_ch(Buffer* buffer);
-void buffer_insert_at(Buffer* buffer, int col, char ch);
-void buffer_delete_at(Buffer* buffer, int col);
+void buffer_insert_at(Buffer* buffer, size_t line, size_t col, char ch);
+void buffer_delete_at(Buffer* buffer, size_t line, size_t col);
 void buffer_free(Buffer* buffer);
-void buffer_print(Buffer* buffer);
 
 #endif

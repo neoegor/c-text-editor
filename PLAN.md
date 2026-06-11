@@ -19,11 +19,28 @@ Window:
     draw()
     handle_key(ch)
 
-Buffer:
-    lines
+Buffer
+
+GapBuffer
+Line
+Buffer - array of Lines 
 
 TODO
 - [x] Memory + dynamic array 
 - [x] Window
 - [x] Move cursor
 - [ ] Gap Buffer
+- [ ] Scroll + cursor position
+- [ ] Windows, splits, floats, textarea rect, number lines, statusbar
+- [ ] Many windows and buffers
+- [ ] Read/write files
+- [ ] Line wrapping
+- [ ] Syntax highlight
+- [ ] Search
+- [ ] Vim motions
+- [ ] Configs
+- [ ] Rope
+
+IDEAS
+- embed lua?
+
