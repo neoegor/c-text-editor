@@ -49,4 +49,5 @@ void app_run(App* app) {
 
 void app_free(App* app) {
     buffer_free(&app->buffer);
+    window_free(&app->window);
 }

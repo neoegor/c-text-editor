@@ -19,8 +19,10 @@ typedef struct {
 } Buffer;
 
 void buffer_init(Buffer* buffer);
-void buffer_insert_at(Buffer* buffer, size_t line, size_t col, char ch);
-void buffer_delete_at(Buffer* buffer, size_t line, size_t col);
+bool buffer_insert_at(Buffer* buffer, size_t line, size_t col, char ch);
+bool buffer_delete_at(Buffer* buffer, size_t line, size_t col);
+bool buffer_insert_line(Buffer* buffer, size_t line);
+bool buffer_delete_line(Buffer* buffer, size_t line);
 void buffer_free(Buffer* buffer);
 
 #endif

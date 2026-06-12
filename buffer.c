@@ -12,18 +12,6 @@ static void gb_init(GapBuffer* gb) {
     gb->capacity = GAP_SIZE;
 }
 
-static void gb_print(GapBuffer* gb) {
-    printf("[");
-    for (size_t i = 0; i < gb->capacity; i++) {
-        if (i >= gb->gap_index && i < gb->gap_index+gb->gap_length) {
-            printf("_");
-        } else {
-            printf("%c", gb->chars[i]);
-        }
-    }
-    printf("]\n");
-}
-
 static void gb_move_to(GapBuffer* gb, size_t col) {
     if (gb->gap_index == col) return;
 
@@ -40,8 +28,8 @@ static void gb_move_to(GapBuffer* gb, size_t col) {
     }
 }
 
-static void gb_insert_at(GapBuffer* gb, size_t col, char ch) {
-    if (col > gb->capacity-gb->gap_length) return;
+static bool gb_insert_at(GapBuffer* gb, size_t col, char ch) {
+    if (col > gb->capacity-gb->gap_length) return false;
 
     if (gb->gap_length == 0) {
         gb->capacity += GAP_SIZE; 
@@ -55,14 +43,18 @@ static void gb_insert_at(GapBuffer* gb, size_t col, char ch) {
     gb->chars[gb->gap_index] = ch;
     gb->gap_index++;
     gb->gap_length--;
+
+    return true;
 }
 
-static void gb_delete_at(GapBuffer* gb, size_t col) {
-    if (col >= gb->capacity-gb->gap_length) return;
+static bool gb_delete_at(GapBuffer* gb, size_t col) {
+    if (col >= gb->capacity-gb->gap_length) return false;
 
     gb_move_to(gb, col);
 
     gb->gap_length++;
+
+    return true;
 }
 
 static void gb_free(GapBuffer* gb) {
@@ -77,16 +69,41 @@ void buffer_init(Buffer* buffer) {
     gb_init(buffer->lines);
 }
 
-void buffer_insert_at(Buffer* buffer, size_t line, size_t col, char ch) {
-    if (line >= buffer->count) return;
-
-    gb_insert_at(&buffer->lines[line], col, ch);
+bool buffer_insert_at(Buffer* buffer, size_t line, size_t col, char ch) {
+    if (line >= buffer->count) return false;
+    if (!gb_insert_at(&buffer->lines[line], col, ch)) return false;
+    return true;
 }
 
-void buffer_delete_at(Buffer* buffer, size_t line, size_t col) {
-    if (line >= buffer->count) return;
+bool buffer_delete_at(Buffer* buffer, size_t line, size_t col) {
+    if (line >= buffer->count) return false;
+    if (!gb_delete_at(&buffer->lines[line], col)) return false;
+    return true;
+}
 
-    gb_delete_at(&buffer->lines[line], col);
+bool buffer_insert_line(Buffer* buffer, size_t line) {
+    if (line > buffer->count) return false;
+
+    if (buffer->count + 1 > buffer->capacity) {
+        buffer->capacity = GROW_CAPACITY(buffer->capacity);
+        buffer->lines = GROW_ARRAY(GapBuffer, buffer->lines, buffer->capacity);
+    }
+
+    memmove(&buffer->lines[line+1], &buffer->lines[line], sizeof(GapBuffer) * (buffer->count - line));
+    gb_init(&buffer->lines[line]);
+    buffer->count++;
+
+    return true;
+}
+
+bool buffer_delete_line(Buffer* buffer, size_t line) {
+    if (line > buffer->count) return false;
+
+    gb_free(&buffer->lines[line]);
+    memmove(&buffer->lines[line], &buffer->lines[line+1], sizeof(GapBuffer) * (buffer->count - line));
+    buffer->count--;
+
+    return true;
 }
 
 void buffer_free(Buffer* buffer) {

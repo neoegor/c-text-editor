@@ -29,11 +29,12 @@ TODO
 - [x] Memory + dynamic array 
 - [x] Window
 - [x] Move cursor
-- [ ] Gap Buffer
-- [ ] Scroll + cursor position
+- [x] Gap Buffer
+- [ ] Window rendering, scroll + cursor position
 - [ ] Windows, splits, floats, textarea rect, number lines, statusbar
 - [ ] Many windows and buffers
 - [ ] Read/write files
+- [ ] Visual mode, copy, paste
 - [ ] Line wrapping
 - [ ] Syntax highlight
 - [ ] Search

@@ -10,6 +10,7 @@ typedef struct {
     Buffer* buffer;
     int cursor_line;
     int cursor_col;
+    int target_col;
 } Window;
 
 void window_init(Window* window, Rect rect, Buffer* buffer);
