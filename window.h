@@ -11,6 +11,7 @@ typedef struct {
     int cursor_line;
     int cursor_col;
     int target_col;
+    int scroll_line;
 } Window;
 
 void window_init(Window* window, Rect rect, Buffer* buffer);

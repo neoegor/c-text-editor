@@ -19,10 +19,13 @@ typedef struct {
 } Buffer;
 
 void buffer_init(Buffer* buffer);
+size_t buffer_get_line_length(Buffer* buffer, size_t line);
 bool buffer_insert_at(Buffer* buffer, size_t line, size_t col, char ch);
 bool buffer_delete_at(Buffer* buffer, size_t line, size_t col);
-bool buffer_insert_line(Buffer* buffer, size_t line);
+bool buffer_insert_empty_line(Buffer* buffer, size_t line);
 bool buffer_delete_line(Buffer* buffer, size_t line);
+bool buffer_split_line(Buffer* buffer, size_t line, size_t col);
+bool buffer_join_with_next_line(Buffer* buffer, size_t line);
 void buffer_free(Buffer* buffer);
 
 #endif

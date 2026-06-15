@@ -6,14 +6,16 @@
 #include "memory.h"
 
 static void gb_init(GapBuffer* gb) {
-    gb->chars = ALLOCATE(char, GAP_SIZE);
+    // gb->chars = ALLOCATE(char, GAP_SIZE);
+    gb->chars = NULL;
     gb->gap_index = 0;
-    gb->gap_length = GAP_SIZE;
-    gb->capacity = GAP_SIZE;
+    gb->gap_length = 0;
+    gb->capacity = 0;
 }
 
-static void gb_move_to(GapBuffer* gb, size_t col) {
-    if (gb->gap_index == col) return;
+static bool gb_move_to(GapBuffer* gb, size_t col) {
+    if (gb->gap_index == col) return true;
+    if (col > gb->capacity-gb->gap_length) return false;
 
     if (gb->gap_index > col) {
         while (gb->gap_index > col) {
@@ -26,6 +28,8 @@ static void gb_move_to(GapBuffer* gb, size_t col) {
             gb->gap_index++;
         }
     }
+
+    return true;
 }
 
 static bool gb_insert_at(GapBuffer* gb, size_t col, char ch) {
@@ -69,6 +73,10 @@ void buffer_init(Buffer* buffer) {
     gb_init(buffer->lines);
 }
 
+size_t buffer_get_line_length(Buffer* buffer, size_t line) {
+    return buffer->lines[line].capacity - buffer->lines[line].gap_length;
+}
+
 bool buffer_insert_at(Buffer* buffer, size_t line, size_t col, char ch) {
     if (line >= buffer->count) return false;
     if (!gb_insert_at(&buffer->lines[line], col, ch)) return false;
@@ -81,7 +89,7 @@ bool buffer_delete_at(Buffer* buffer, size_t line, size_t col) {
     return true;
 }
 
-bool buffer_insert_line(Buffer* buffer, size_t line) {
+bool buffer_insert_empty_line(Buffer* buffer, size_t line) {
     if (line > buffer->count) return false;
 
     if (buffer->count + 1 > buffer->capacity) {
@@ -102,6 +110,49 @@ bool buffer_delete_line(Buffer* buffer, size_t line) {
     gb_free(&buffer->lines[line]);
     memmove(&buffer->lines[line], &buffer->lines[line+1], sizeof(GapBuffer) * (buffer->count - line));
     buffer->count--;
+
+    return true;
+}
+
+bool buffer_split_line(Buffer* buffer, size_t line, size_t col) {
+    if (line >= buffer->count) return false;
+
+    GapBuffer* current = &buffer->lines[line];
+    if (!gb_move_to(current, col)) return false;
+
+    size_t new_line_length = current->capacity - (current->gap_index + current->gap_length);
+    
+    // May realloc => wrong current
+    buffer_insert_empty_line(buffer, line + 1);
+    current = &buffer->lines[line];
+
+    GapBuffer* next = &buffer->lines[line + 1];
+
+    next->capacity = new_line_length;
+    next->chars = ALLOCATE(char, next->capacity);
+    memmove(next->chars, &current->chars[current->gap_index + current->gap_length], next->capacity);
+
+    current->gap_length = current->capacity - current->gap_index;
+
+    return true;
+}
+
+bool buffer_join_with_next_line(Buffer* buffer, size_t line) {
+    if (line + 1 >= buffer->count) return false;
+
+    GapBuffer* current = &buffer->lines[line];
+    GapBuffer* next = &buffer->lines[line + 1];
+
+    size_t next_line_length = next->capacity - next->gap_length;
+
+    gb_move_to(next, next_line_length);
+
+    size_t insert_index = current->capacity;
+    current->capacity += next_line_length;
+    current->chars = GROW_ARRAY(char, current->chars, current->capacity);
+
+    memmove(&current->chars[insert_index], next->chars, next->gap_index);
+    buffer_delete_line(buffer, line + 1);
 
     return true;
 }
