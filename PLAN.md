@@ -4,20 +4,20 @@ TODO
 - [x] Move cursor
 - [x] Gap Buffer
 - [x] Window rendering, scroll + cursor position
-- [ ] Windows, splits, floats, textarea rect, number lines, statusbar
-- [ ] Colors
-- [ ] Many windows and buffers
+- [x] Editor module
+- [x] Modes
+- [ ] Command mode
 - [ ] Read/write files
+- [ ] Many windows and buffers
+- [ ] Windows, splits, floats, textarea rect, number lines, statusbar
+- [ ] Vim motions (parser)
+- [ ] Syntax highlight + colors and themes
 - [ ] Visual mode, copy, paste
 - [ ] Line wrapping
-- [ ] Syntax highlight
 - [ ] Search
-- [ ] Vim motions (parser)
 - [ ] Configs
-- [ ] Rope
+- [ ] Rope (opt)
+- [ ] Lua (opt)
 
 TODO TODAY
-- modularity -> split key handling
 
-IDEAS
-- embed lua?

@@ -4,13 +4,13 @@
 #include "common.h"
 #include "buffer.h"
 #include "value.h"
+#include "editor.h"
 
 typedef struct {
     Rect rect;
-    Buffer* buffer;
-    int cursor_line;
-    int cursor_col;
-    int target_col;
+    Rect textarea;
+    Editor editor;
+    bool show_line_numbers;
     int scroll_line;
 } Window;
 

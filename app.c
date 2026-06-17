@@ -14,6 +14,7 @@ void app_init(App* app) {
     raw();
     noecho();
     keypad(stdscr, TRUE);
+    set_escdelay(25);
 
     buffer_init(&app->buffer);
     window_init(&app->window, (Rect){0, 0, cols, rows}, &app->buffer);
@@ -26,7 +27,7 @@ static void app_draw(App* app) {
 }
 
 static void app_handle_key(App* app, int key) {
-    if (key == 27) {
+    if (key == CTRL_C) {
         app->running = false;
     } else {
         window_handle_key(&app->window, key);
@@ -43,11 +44,10 @@ void app_run(App* app) {
         
         app_handle_key(app, key);
     }
-
-    endwin();
 }
 
 void app_free(App* app) {
+    endwin();
     buffer_free(&app->buffer);
     window_free(&app->window);
 }

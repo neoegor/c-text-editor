@@ -6,7 +6,6 @@
 #include "memory.h"
 
 static void gb_init(GapBuffer* gb) {
-    // gb->chars = ALLOCATE(char, GAP_SIZE);
     gb->chars = NULL;
     gb->gap_index = 0;
     gb->gap_length = 0;
@@ -73,8 +72,22 @@ void buffer_init(Buffer* buffer) {
     gb_init(buffer->lines);
 }
 
+size_t buffer_get_line_count(Buffer* buffer) {
+    return buffer->count;
+}
+
 size_t buffer_get_line_length(Buffer* buffer, size_t line) {
     return buffer->lines[line].capacity - buffer->lines[line].gap_length;
+}
+
+char buffer_get_char_at(Buffer* buffer, size_t line, size_t col) {
+    GapBuffer* gb = &buffer->lines[line];
+
+    if (col < gb->gap_index) {
+        return gb->chars[col];
+    } else {
+        return gb->chars[col + gb->gap_length];
+    }
 }
 
 bool buffer_insert_at(Buffer* buffer, size_t line, size_t col, char ch) {
@@ -105,10 +118,10 @@ bool buffer_insert_empty_line(Buffer* buffer, size_t line) {
 }
 
 bool buffer_delete_line(Buffer* buffer, size_t line) {
-    if (line > buffer->count) return false;
+    if (line >= buffer->count) return false;
 
     gb_free(&buffer->lines[line]);
-    memmove(&buffer->lines[line], &buffer->lines[line+1], sizeof(GapBuffer) * (buffer->count - line));
+    memmove(&buffer->lines[line], &buffer->lines[line+1], sizeof(GapBuffer) * (buffer->count - line - 1));
     buffer->count--;
 
     return true;

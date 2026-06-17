@@ -5,6 +5,8 @@
 #include "buffer.h"
 #include "window.h"
 
+#define CTRL_C 3
+
 typedef struct {
     bool running;
     Buffer buffer;

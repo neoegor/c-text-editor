@@ -4,49 +4,70 @@
 #include "window.h"
 #include "value.h"
 
-const char* message = "";
-
 void window_init(Window* window, Rect rect, Buffer* buffer) {
     window->rect = rect;
-    window->buffer = buffer;
-    window->cursor_line = 0;
-    window->cursor_col = 0;
-    window->target_col = 0;
+    window->textarea = (Rect){rect.x, rect.y, rect.width, rect.height-1};
+    editor_init(&window->editor, buffer);
+    window->show_line_numbers = false;
     window->scroll_line = 0;
 }
 
-static void window_draw_gapbuffer(Window* window, size_t line) {
-    GapBuffer* gb = &window->buffer->lines[line];
+static void window_draw_line(Window* window, size_t line) {
+    size_t line_length = buffer_get_line_length(window->editor.buffer, line);
 
-    for (size_t col = 0; col < gb->gap_index && col < window->rect.width; col++) {
+    for (size_t col = 0; col < line_length && col < window->textarea.width; col++) {
         mvaddch(
-            window->rect.y + line - window->scroll_line,
-            window->rect.x + col,
-            gb->chars[col]
-        );
-    }
-
-    for (size_t col = gb->gap_index + gb->gap_length; col < gb->capacity && col < window->rect.width; col++) {
-        mvaddch(
-            window->rect.y + line - window->scroll_line,
-            window->rect.x + col-gb->gap_length,
-            gb->chars[col]
+            window->textarea.y + line - window->scroll_line,
+            window->textarea.x + col,
+            buffer_get_char_at(window->editor.buffer, line, col)
         );
     }
 }
 
 static void window_draw_buffer(Window* window) {
-    for (size_t line = window->scroll_line; line < window->buffer->count && line < window->rect.height + window->scroll_line; line++) {
-        window_draw_gapbuffer(window, line);
+    for (size_t line = window->scroll_line; line < buffer_get_line_count(window->editor.buffer) && line < window->textarea.height + window->scroll_line; line++) {
+        window_draw_line(window, line);
     }
 }
 
 static void window_draw_statusbar(Window* window) {
-    mvprintw(window->rect.height-1, 0, "[ %d:%d ] [ %d ]", window->cursor_line+1, window->cursor_col+1, window->scroll_line);
+    int cursor_line = editor_get_cursor_line(&window->editor);
+    int cursor_col = editor_get_cursor_col(&window->editor);
+    Mode mode = editor_get_mode(&window->editor);
+    const char* mode_str = "UNKNOWN";
+    
+    switch (mode) {
+        case NORMAL_MODE:
+            mode_str = "NORMAL";
+            break;
+        case INSERT_MODE:
+            mode_str = "INSERT";
+            break;
+        case VISUAL_MODE:
+            mode_str = "VISUAL";
+            break;
+    }
+
+    mvprintw(
+        window->rect.y + window->rect.height-1,
+        window->rect.x,
+        "[-- %s --] [ %d:%d ] [ %d ]",
+        mode_str,
+        cursor_line+1,
+        cursor_col+1,
+        window->scroll_line
+    );
 }
 
 static void window_move_cursor(Window* window) {
-    move(window->cursor_line - window->scroll_line, window->cursor_col);
+    int cursor_line = editor_get_cursor_line(&window->editor);
+    int cursor_col = editor_get_cursor_col(&window->editor);
+
+    // Could be outside the textarea width
+    move(
+        window->textarea.y + cursor_line - window->scroll_line,
+        window->textarea.x + cursor_col
+    );
 }
 
 void window_draw(Window* window) {
@@ -55,120 +76,56 @@ void window_draw(Window* window) {
     window_move_cursor(window);
 }
 
-static void window_adjust_cursor_col(Window* window) {
-    // Function :|
-    size_t line_length = window->buffer->lines[window->cursor_line].capacity - window->buffer->lines[window->cursor_line].gap_length;
-    if (window->target_col > line_length) {
-        window->cursor_col = line_length;
-    } else {
-        window->cursor_col = window->target_col;
-    }
-}
-
-static void window_move_up(Window* window) {
-    if (window->cursor_line <= 0) return;
-    window->cursor_line--;
-
-    window_adjust_cursor_col(window);
-}
-
-static void window_move_down(Window* window) {
-    if (window->cursor_line >= window->buffer->count - 1) return;
-    window->cursor_line++;
-
-    window_adjust_cursor_col(window);
-}
-
-static void window_move_left(Window* window) {
-    if (window->cursor_col <= 0) return;
-    window->cursor_col--;
-    window->target_col = window->cursor_col;
-}
-
-static void window_move_right(Window* window) {
-    // TODO super bad
-    if (window->cursor_col >= window->buffer->lines[window->cursor_line].capacity - window->buffer->lines[window->cursor_line].gap_length) return;
-    window->cursor_col++;
-    window->target_col = window->cursor_col;
-}
-
-static void window_insert_ch(Window* window, char key) {
-    if (buffer_insert_at(window->buffer, window->cursor_line, window->cursor_col, key)) {
-        window_move_right(window);
-    }
-}
-
-static void window_delete_line(Window* window);
-
-static void window_delete_ch(Window* window) {
-    if (window->cursor_col == 0) {
-        window_delete_line(window);
-        return;
-    }
-    window_move_left(window);
-    buffer_delete_at(window->buffer, window->cursor_line, window->cursor_col);
-}
-
-static void window_insert_line(Window* window) {
-    if (buffer_split_line(window->buffer, window->cursor_line, window->cursor_col)) {
-        window->target_col = 0;
-        window->cursor_col = window->target_col;
-        window->cursor_line++;
-    }
-}
-
-static void window_delete_line(Window* window) {
-    if (window->cursor_line == 0) return; 
-
-    window->cursor_line--;
-    window->target_col = buffer_get_line_length(window->buffer, window->cursor_line);
-    window->cursor_col = window->target_col;
-    buffer_join_with_next_line(window->buffer, window->cursor_line);
-}
-
 static void window_ensure_cursor_visible(Window* window) {
-    if (window->cursor_line < window->scroll_line) {
-        window->scroll_line = window->cursor_line;
-    } else if (window->cursor_line >= window->scroll_line + window->rect.height - 1) {
-        // status bar, need text area rect
-        window->scroll_line = window->cursor_line - window->rect.height + 2;
+    int cursor_line = editor_get_cursor_line(&window->editor);
+
+    if (cursor_line < window->scroll_line) {
+        window->scroll_line = cursor_line;
+    } else if (cursor_line >= window->scroll_line + window->textarea.height) {
+        window->scroll_line = cursor_line - window->textarea.height + 1;
     }
 }
 
 void window_handle_key(Window* window, int key) {
+    EditorKey key_event;
     switch (key) {
         case KEY_UP:
-            window_move_up(window);
+            key_event = (EditorKey){EKEY_UP, 0};
             break;
         case KEY_DOWN:
-            window_move_down(window);
+            key_event = (EditorKey){EKEY_DOWN, 0};
             break;
         case KEY_LEFT:
-            window_move_left(window);
+            key_event = (EditorKey){EKEY_LEFT, 0};
             break;
         case KEY_RIGHT:
-            window_move_right(window);
+            key_event = (EditorKey){EKEY_RIGHT, 0};
             break;
         case KEY_BACKSPACE:
         case 127:
         case 8:
-            window_delete_ch(window);
+            key_event = (EditorKey){EKEY_BACKSPACE, 0};
             break;
         case '\n':
         case '\r':
-            window_insert_line(window);
+            key_event = (EditorKey){EKEY_ENTER, 0};
+            break;
+        case 27:
+            key_event = (EditorKey){EKEY_ESCAPE, 0};
             break;
         
         default:
             if (key >= 32 && key <= 126) {
-                window_insert_ch(window, (char)key);
+                key_event = (EditorKey){EKEY_CHAR, key};
+            } else {
+                return;
             }
             break;
     }
-
+    editor_handle_key(&window->editor, key_event);
     window_ensure_cursor_visible(window);
 }
 
 void window_free(Window* window) {
-    window->buffer = NULL;
+    editor_free(&window->editor);
 }
