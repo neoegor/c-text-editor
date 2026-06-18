@@ -4,11 +4,17 @@
 #include "common.h"
 #include "buffer.h"
 #include "window.h"
+#include "commandline.h"
 
-#define CTRL_C 3
+typedef enum {
+    APP_NORMAL,
+    APP_COMMAND,
+} AppMode;
 
 typedef struct {
     bool running;
+    AppMode mode;
+    CommandLine cl;
     Buffer buffer;
     Window window;
 } App;

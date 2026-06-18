@@ -51,17 +51,23 @@ static void window_draw_statusbar(Window* window) {
     mvprintw(
         window->rect.y + window->rect.height-1,
         window->rect.x,
-        "[-- %s --] [ %d:%d ] [ %d ]",
+        "[-- %s --] [ %d:%d ]",
         mode_str,
         cursor_line+1,
-        cursor_col+1,
-        window->scroll_line
+        cursor_col+1
     );
 }
 
 static void window_move_cursor(Window* window) {
     int cursor_line = editor_get_cursor_line(&window->editor);
     int cursor_col = editor_get_cursor_col(&window->editor);
+
+    if (editor_get_mode(&window->editor) == INSERT_MODE) {
+        printf("\x1b[6 q"); // beam
+    } else {
+        printf("\x1b[2 q"); // block
+    }
+    fflush(stdout);
 
     // Could be outside the textarea width
     move(
@@ -86,43 +92,8 @@ static void window_ensure_cursor_visible(Window* window) {
     }
 }
 
-void window_handle_key(Window* window, int key) {
-    EditorKey key_event;
-    switch (key) {
-        case KEY_UP:
-            key_event = (EditorKey){EKEY_UP, 0};
-            break;
-        case KEY_DOWN:
-            key_event = (EditorKey){EKEY_DOWN, 0};
-            break;
-        case KEY_LEFT:
-            key_event = (EditorKey){EKEY_LEFT, 0};
-            break;
-        case KEY_RIGHT:
-            key_event = (EditorKey){EKEY_RIGHT, 0};
-            break;
-        case KEY_BACKSPACE:
-        case 127:
-        case 8:
-            key_event = (EditorKey){EKEY_BACKSPACE, 0};
-            break;
-        case '\n':
-        case '\r':
-            key_event = (EditorKey){EKEY_ENTER, 0};
-            break;
-        case 27:
-            key_event = (EditorKey){EKEY_ESCAPE, 0};
-            break;
-        
-        default:
-            if (key >= 32 && key <= 126) {
-                key_event = (EditorKey){EKEY_CHAR, key};
-            } else {
-                return;
-            }
-            break;
-    }
-    editor_handle_key(&window->editor, key_event);
+void window_handle_key(Window* window, Key key) {
+    editor_handle_key(&window->editor, key);
     window_ensure_cursor_visible(window);
 }
 

@@ -1,4 +1,5 @@
 #include "common.h"
+#include "input.h"
 #include "editor.h"
 #include "buffer.h"
 
@@ -71,6 +72,14 @@ static void editor_delete_line(Editor* editor) {
     buffer_join_with_next_line(editor->buffer, editor->cursor_line);
 }
 
+static void editor_move_to_eol(Editor* editor) {
+    editor->cursor_col = buffer_get_line_length(editor->buffer, editor->cursor_line);
+}
+
+static void editor_move_to_bol(Editor* editor) {
+    editor->cursor_col = 0;
+}
+
 void editor_init(Editor* editor, Buffer* buffer) {
     editor->buffer = buffer;
     editor->mode = NORMAL_MODE;
@@ -107,14 +116,25 @@ static void editor_handle_command(Editor* editor, EditorCommand cmd) {
         case EDITOR_MOVE_RIGHT:
             editor_move_right(editor);
             break;
-        case EDITOR_BACKSPACE:
-            editor_delete_ch(editor);
+        case EDITOR_INSERT_CHAR:
+            editor_insert_ch(editor, (char)cmd.ch);
             break;
         case EDITOR_ENTER:
             editor_insert_line(editor);
             break;
-        case EDITOR_INSERT_CHAR:
-            editor_insert_ch(editor, (char)cmd.ch);
+        case EDITOR_BACKSPACE:
+            editor_delete_ch(editor);
+            break;
+        case EDITOR_OPEN_LINE_BELLOW:
+            editor_move_to_eol(editor);
+            editor_insert_line(editor);
+            editor->mode = INSERT_MODE;
+            break;
+        case EDITOR_OPEN_LINE_ABOVE:
+            editor_move_to_bol(editor);
+            editor_insert_line(editor);
+            editor_move_up(editor);
+            editor->mode = INSERT_MODE;
             break;
         
         default:
@@ -122,9 +142,9 @@ static void editor_handle_command(Editor* editor, EditorCommand cmd) {
     }
 }
 
-static void editor_handle_normal_mode(Editor* editor, EditorKey key, EditorCommand* cmd) {
+static void editor_handle_normal_mode(Editor* editor, Key key, EditorCommand* cmd) {
     switch (key.type) {
-        case EKEY_CHAR:
+        case IKEY_CHAR:
             switch (key.ch) {
                 case 'i':
                     editor->mode = INSERT_MODE;
@@ -141,6 +161,12 @@ static void editor_handle_normal_mode(Editor* editor, EditorKey key, EditorComma
                 case 'l':
                     *cmd = (EditorCommand){EDITOR_MOVE_RIGHT, 0};
                     break;
+                case 'o':
+                    *cmd = (EditorCommand){EDITOR_OPEN_LINE_BELLOW, 0};
+                    break;
+                case 'O':
+                    *cmd = (EditorCommand){EDITOR_OPEN_LINE_ABOVE, 0};
+                    break;
             }
             break;
 
@@ -149,30 +175,30 @@ static void editor_handle_normal_mode(Editor* editor, EditorKey key, EditorComma
     }
 }
 
-static void editor_handle_insert_mode(Editor* editor, EditorKey key, EditorCommand* cmd) {
+static void editor_handle_insert_mode(Editor* editor, Key key, EditorCommand* cmd) {
     switch (key.type) {
-        case EKEY_ESCAPE:
+        case IKEY_ESCAPE:
             editor->mode = NORMAL_MODE;
             break;
-        case EKEY_UP:
+        case IKEY_UP:
             *cmd = (EditorCommand){EDITOR_MOVE_UP, 0};
             break;
-        case EKEY_DOWN:
+        case IKEY_DOWN:
             *cmd = (EditorCommand){EDITOR_MOVE_DOWN, 0};
             break;
-        case EKEY_LEFT:
+        case IKEY_LEFT:
             *cmd = (EditorCommand){EDITOR_MOVE_LEFT, 0};
             break;
-        case EKEY_RIGHT:
+        case IKEY_RIGHT:
             *cmd = (EditorCommand){EDITOR_MOVE_RIGHT, 0};
             break;
-        case EKEY_BACKSPACE:
+        case IKEY_BACKSPACE:
             *cmd = (EditorCommand){EDITOR_BACKSPACE, 0};
             break;
-        case EKEY_ENTER:
+        case IKEY_ENTER:
             *cmd = (EditorCommand){EDITOR_ENTER, 0};
             break;
-        case EKEY_CHAR:
+        case IKEY_CHAR:
             *cmd = (EditorCommand){EDITOR_INSERT_CHAR, key.ch};
             break;
 
@@ -181,7 +207,7 @@ static void editor_handle_insert_mode(Editor* editor, EditorKey key, EditorComma
     }
 }
 
-void editor_handle_key(Editor* editor, EditorKey key) {
+void editor_handle_key(Editor* editor, Key key) {
     EditorCommand cmd = {EDITOR_NONE, 0};
 
     switch (editor->mode) {

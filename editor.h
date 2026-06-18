@@ -2,6 +2,7 @@
 #define EDITOR_H
 
 #include "common.h"
+#include "input.h"
 #include "buffer.h"
 #include "value.h"
 
@@ -20,22 +21,6 @@ typedef struct {
 } Editor;
 
 typedef enum {
-    EKEY_UP,
-    EKEY_DOWN,
-    EKEY_LEFT,
-    EKEY_RIGHT,
-    EKEY_CHAR,
-    EKEY_ENTER,
-    EKEY_BACKSPACE,
-    EKEY_ESCAPE,
-} EditorKeyType;
-
-typedef struct {
-    EditorKeyType type;
-    int ch;
-} EditorKey;
-
-typedef enum {
     EDITOR_NONE,
     EDITOR_MOVE_UP,
     EDITOR_MOVE_DOWN,
@@ -44,6 +29,8 @@ typedef enum {
     EDITOR_INSERT_CHAR,
     EDITOR_ENTER,
     EDITOR_BACKSPACE,
+    EDITOR_OPEN_LINE_BELLOW,
+    EDITOR_OPEN_LINE_ABOVE,
 } EditorAction;
 
 typedef struct {
@@ -55,7 +42,7 @@ void editor_init(Editor* editor, Buffer* buffer);
 int editor_get_cursor_line(Editor* editor);
 int editor_get_cursor_col(Editor* editor);
 Mode editor_get_mode(Editor* editor);
-void editor_handle_key(Editor* editor, EditorKey key);
+void editor_handle_key(Editor* editor, Key key);
 void editor_free(Editor* editor);
 
 #endif

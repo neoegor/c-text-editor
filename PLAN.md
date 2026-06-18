@@ -6,14 +6,14 @@ TODO
 - [x] Window rendering, scroll + cursor position
 - [x] Editor module
 - [x] Modes
-- [ ] Command mode
+- [x] Command mode
 - [ ] Read/write files
 - [ ] Many windows and buffers
 - [ ] Windows, splits, floats, textarea rect, number lines, statusbar
 - [ ] Vim motions (parser)
 - [ ] Syntax highlight + colors and themes
 - [ ] Visual mode, copy, paste
-- [ ] Line wrapping
+- [ ] Line wrapping, horizontal scroll
 - [ ] Search
 - [ ] Configs
 - [ ] Rope (opt)

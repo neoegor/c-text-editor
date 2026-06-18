@@ -2,6 +2,7 @@
 #define WINDOW_H
 
 #include "common.h"
+#include "input.h"
 #include "buffer.h"
 #include "value.h"
 #include "editor.h"
@@ -16,7 +17,7 @@ typedef struct {
 
 void window_init(Window* window, Rect rect, Buffer* buffer);
 void window_draw(Window* window);
-void window_handle_key(Window* window, int key);
+void window_handle_key(Window* window, Key key);
 void window_free(Window* window);
 
 #endif
