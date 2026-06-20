@@ -2,7 +2,7 @@
 
 int main(int argc, const char* argv[]) {
     App app;
-    app_init(&app);
+    app_init(&app, argc, argv);
     app_run(&app);
     app_free(&app);
 

@@ -12,6 +12,7 @@ typedef enum {
     IKEY_ENTER,
     IKEY_BACKSPACE,
     IKEY_ESCAPE,
+    IKEY_TAB,
     IKEY_CTRL_C,
 } KeyType;
 

@@ -48,11 +48,17 @@ static void window_draw_statusbar(Window* window) {
             break;
     }
 
+    const char* filename = editor_get_filename(&window->editor);
+    if (filename == NULL) {
+        filename = "No Name";
+    }
+
     mvprintw(
         window->rect.y + window->rect.height-1,
         window->rect.x,
-        "[-- %s --] [ %d:%d ]",
+        "[-- %s --] [ %s ] [ %d:%d ]",
         mode_str,
+        filename,
         cursor_line+1,
         cursor_col+1
     );

@@ -29,6 +29,7 @@ typedef enum {
     EDITOR_INSERT_CHAR,
     EDITOR_ENTER,
     EDITOR_BACKSPACE,
+    EDITOR_TAB,
     EDITOR_OPEN_LINE_BELLOW,
     EDITOR_OPEN_LINE_ABOVE,
 } EditorAction;
@@ -42,6 +43,7 @@ void editor_init(Editor* editor, Buffer* buffer);
 int editor_get_cursor_line(Editor* editor);
 int editor_get_cursor_col(Editor* editor);
 Mode editor_get_mode(Editor* editor);
+const char* editor_get_filename(Editor* editor);
 void editor_handle_key(Editor* editor, Key key);
 void editor_free(Editor* editor);
 

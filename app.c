@@ -1,5 +1,6 @@
 #include <ncurses.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "common.h"
 #include "app.h"
@@ -8,7 +9,70 @@
 #include "window.h"
 #include "commandline.h"
 
-void app_init(App* app) {
+static void app_load_file(App* app, const char* filename) {
+    FILE* f = fopen(filename, "r");
+
+    if (!f) {
+        return;
+    }
+
+    // temp until multimple buffers
+    buffer_free(&app->buffer);
+    buffer_init(&app->buffer);
+    editor_init(&app->window.editor, &app->buffer);
+
+    char line[1024];
+    if (app->buffer.filename != NULL) {
+        free(app->buffer.filename);
+    }
+    app->buffer.filename = strdup(filename);
+
+    while (fgets(line, sizeof(line), f)) {
+        buffer_append_line_from_cstr(&app->buffer, line);
+    }
+
+    fclose(f);
+}
+
+static void app_save_file_as(App* app, const char* filename) {
+    FILE* f = fopen(filename, "w");
+
+    if (!f) {
+        return;
+    }
+
+    if (app->buffer.filename != NULL) {
+        free(app->buffer.filename);
+    }
+    app->buffer.filename = strdup(filename);
+    Buffer* buffer = &app->buffer;
+    size_t line_count = buffer_get_line_count(buffer);
+
+    for (size_t line = 0; line < line_count; line++) {
+        size_t len = buffer_get_line_length(buffer, line);
+
+        for (size_t col = 0; col < len; col++) {
+            char c = buffer_get_char_at(buffer, line, col);
+            fputc(c, f);
+        }
+
+        if (line != line_count - 1) {
+            fputc('\n', f);
+        }
+    }
+
+    fclose(f);
+}
+
+static void app_save_file(App* app) {
+    const char* filename = editor_get_filename(&app->window.editor);
+
+    if (filename == NULL) return;
+
+    app_save_file_as(app, filename);
+}
+
+void app_init(App* app, int argc, const char* argv[]) {
     app->running = true;
     app->mode = APP_NORMAL;
 
@@ -21,7 +85,12 @@ void app_init(App* app) {
     set_escdelay(25);
 
     commandline_init(&app->cl, (Rect){0, rows-1, cols, 1});
-    buffer_init(&app->buffer);
+    if (argc == 1) {
+        buffer_init(&app->buffer);
+    } else if (argc == 2) {
+        buffer_init(&app->buffer);
+        app_load_file(app, argv[1]);
+    }
     window_init(&app->window, (Rect){0, 0, cols, rows}, &app->buffer);
 }
 
@@ -61,6 +130,9 @@ static bool translate_key(int key, Key* out) {
         case 27:
             *out = (Key){IKEY_ESCAPE, 0};
             break;
+        case '\t':
+            *out = (Key){IKEY_TAB, 0};
+            break;
         case 3:
             *out = (Key){IKEY_CTRL_C, 0};
             break;
@@ -76,18 +148,19 @@ static bool translate_key(int key, Key* out) {
     return true;
 }
 
-static void save_file_as(Editor* editor, const char* filename) {
-
-}
-
 static void app_execute_command(App* app) {
     const char* cmd = commandline_get_prompt(&app->cl);
 
     if (strcmp(cmd, "q") == 0) {
         app->running = false;
+    } else if (strncmp(cmd, "e ", 2) == 0) {
+        const char* filename = cmd + 2;
+        app_load_file(app, filename);
+    } else if (strcmp(cmd, "w") == 0) {
+        app_save_file(app);
     } else if (strncmp(cmd, "w ", 2) == 0) {
         const char* filename = cmd + 2;
-        save_file_as(&app->window.editor, filename);
+        app_save_file_as(app, filename);
     }
 }
 
@@ -95,26 +168,22 @@ static void app_handle_key(App* app, int key) {
     Key key_event;
     if (!translate_key(key, &key_event)) return;
 
-    if (key_event.type == IKEY_CTRL_C) {
-        app->running = false;
-    } else {
-        if (app->mode == APP_COMMAND) {
-            if (key_event.type == IKEY_ESCAPE) {
-                app->mode = APP_NORMAL;
-                return;
-            }
-            if (commandline_handle_key(&app->cl, key_event)) {
-                app_execute_command(app);
-                commandline_clear(&app->cl);
-                app->mode = APP_NORMAL;
-            }
-        } else {
-            if (key_event.type == IKEY_CHAR && key_event.ch == ':' && editor_get_mode(&app->window.editor) == NORMAL_MODE) {
-                app->mode = APP_COMMAND;
-                return;
-            }
-            window_handle_key(&app->window, key_event);
+    if (app->mode == APP_COMMAND) {
+        if (key_event.type == IKEY_ESCAPE) {
+            app->mode = APP_NORMAL;
+            return;
         }
+        if (commandline_handle_key(&app->cl, key_event)) {
+            app_execute_command(app);
+            commandline_clear(&app->cl);
+            app->mode = APP_NORMAL;
+        }
+    } else {
+        if (key_event.type == IKEY_CHAR && key_event.ch == ':' && editor_get_mode(&app->window.editor) == NORMAL_MODE) {
+            app->mode = APP_COMMAND;
+            return;
+        }
+        window_handle_key(&app->window, key_event);
     }
 }
 

@@ -19,7 +19,7 @@ typedef struct {
     Window window;
 } App;
 
-void app_init(App* app);
+void app_init(App* app, int argc, const char* argv[]);
 void app_run(App* app);
 void app_free(App* app);
 

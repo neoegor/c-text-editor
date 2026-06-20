@@ -7,9 +7,10 @@ TODO
 - [x] Editor module
 - [x] Modes
 - [x] Command mode
-- [ ] Read/write files
+- [x] Read/write files
 - [ ] Many windows and buffers
 - [ ] Windows, splits, floats, textarea rect, number lines, statusbar
+- [ ] Window resize
 - [ ] Vim motions (parser)
 - [ ] Syntax highlight + colors and themes
 - [ ] Visual mode, copy, paste
@@ -20,4 +21,5 @@ TODO
 - [ ] Lua (opt)
 
 TODO TODAY
-
+- open with file name arg
+- buffer_save

@@ -55,6 +55,12 @@ static void editor_delete_ch(Editor* editor) {
     buffer_delete_at(editor->buffer, editor->cursor_line, editor->cursor_col);
 }
 
+static void editor_insert_tab(Editor* editor) {
+    for (int i = 0; i < 4; i++) {
+        editor_insert_ch(editor, ' ');
+    }
+}
+
 static void editor_insert_line(Editor* editor) {
     if (buffer_split_line(editor->buffer, editor->cursor_line, editor->cursor_col)) {
         editor->target_col = 0;
@@ -100,6 +106,10 @@ Mode editor_get_mode(Editor* editor) {
     return editor->mode;
 }
 
+const char* editor_get_filename(Editor* editor) {
+    return editor->buffer->filename;
+}
+
 static void editor_handle_command(Editor* editor, EditorCommand cmd) {
     switch (cmd.type) {
         case EDITOR_NONE:
@@ -124,6 +134,9 @@ static void editor_handle_command(Editor* editor, EditorCommand cmd) {
             break;
         case EDITOR_BACKSPACE:
             editor_delete_ch(editor);
+            break;
+        case EDITOR_TAB:
+            editor_insert_tab(editor);
             break;
         case EDITOR_OPEN_LINE_BELLOW:
             editor_move_to_eol(editor);
@@ -200,6 +213,9 @@ static void editor_handle_insert_mode(Editor* editor, Key key, EditorCommand* cm
             break;
         case IKEY_CHAR:
             *cmd = (EditorCommand){EDITOR_INSERT_CHAR, key.ch};
+            break;
+        case IKEY_TAB:
+            *cmd = (EditorCommand){EDITOR_TAB, 0};
             break;
 
         default:

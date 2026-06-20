@@ -68,8 +68,8 @@ void buffer_init(Buffer* buffer) {
     buffer->capacity = 0;
     buffer->capacity = GROW_CAPACITY(buffer->capacity);
     buffer->lines = ALLOCATE(GapBuffer, buffer->capacity);
-    buffer->count = 1;
-    gb_init(buffer->lines);
+    buffer->count = 0;
+    buffer->filename = NULL;
 }
 
 size_t buffer_get_line_count(Buffer* buffer) {
@@ -91,6 +91,9 @@ char buffer_get_char_at(Buffer* buffer, size_t line, size_t col) {
 }
 
 bool buffer_insert_at(Buffer* buffer, size_t line, size_t col, char ch) {
+    if (buffer->count == 0) {
+        buffer_insert_empty_line(buffer, 0);
+    }
     if (line >= buffer->count) return false;
     if (!gb_insert_at(&buffer->lines[line], col, ch)) return false;
     return true;
@@ -168,6 +171,20 @@ bool buffer_join_with_next_line(Buffer* buffer, size_t line) {
     buffer_delete_line(buffer, line + 1);
 
     return true;
+}
+
+void buffer_append_line_from_cstr(Buffer* buffer, const char* str) {
+    size_t len = strlen(str);
+
+    if (len > 0 && str[len - 1] == '\n') {
+        len--;
+    }
+
+    buffer_insert_empty_line(buffer, buffer->count);
+
+    for (size_t i = 0; i < len; i++) {
+        buffer_insert_at(buffer, buffer->count - 1, i, str[i]);
+    }
 }
 
 void buffer_free(Buffer* buffer) {

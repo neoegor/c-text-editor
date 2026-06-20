@@ -16,6 +16,7 @@ typedef struct {
     GapBuffer* lines;
     size_t count;
     size_t capacity;
+    char* filename;
 } Buffer;
 
 void buffer_init(Buffer* buffer);
@@ -28,6 +29,7 @@ bool buffer_insert_empty_line(Buffer* buffer, size_t line);
 bool buffer_delete_line(Buffer* buffer, size_t line);
 bool buffer_split_line(Buffer* buffer, size_t line, size_t col);
 bool buffer_join_with_next_line(Buffer* buffer, size_t line);
+void buffer_append_line_from_cstr(Buffer* buffer, const char* line);
 void buffer_free(Buffer* buffer);
 
 #endif
