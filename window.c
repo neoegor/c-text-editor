@@ -3,24 +3,59 @@
 #include "common.h"
 #include "window.h"
 #include "value.h"
+#include "clipboard.h"
 
-void window_init(Window* window, Rect rect, Buffer* buffer) {
+void window_init(Window* window, Rect rect, Buffer* buffer, Clipboard* cb) {
     window->rect = rect;
     window->textarea = (Rect){rect.x, rect.y, rect.width, rect.height-1};
-    editor_init(&window->editor, buffer);
+    editor_init(&window->editor, buffer, cb);
     window->show_line_numbers = false;
     window->scroll_line = 0;
+}
+
+static bool should_highlight(Editor* editor, size_t line, size_t col) {
+    if (editor->mode == VISUAL_MODE) {
+        Point start = editor->highlight_start;
+        Point end = {editor->cursor_col, editor->cursor_line};
+
+        if ((start.y > end.y) || (start.y == end.y && start.x > end.x)) {
+            Point temp = end;
+            end = start;
+            start = temp;
+        }
+
+        if (line < start.y) return false;
+        if (line > end.y) return false;
+        if (line == start.y && line == end.y) {
+            return col >= start.x && col <= end.x;
+        }
+        if (line == start.y) {
+            return col >= start.x;
+        }
+        if (line == end.y) {
+            return col <= end.x;
+        }
+        return true;
+    }
+    return false;
 }
 
 static void window_draw_line(Window* window, size_t line) {
     size_t line_length = buffer_get_line_length(window->editor.buffer, line);
 
     for (size_t col = 0; col < line_length && col < window->textarea.width; col++) {
+        bool sh = should_highlight(&window->editor, line, col);
+        if (sh) {
+            attron(A_REVERSE);
+        }
         mvaddch(
             window->textarea.y + line - window->scroll_line,
             window->textarea.x + col,
             buffer_get_char_at(window->editor.buffer, line, col)
         );
+        if (sh) {
+            attroff(A_REVERSE);
+        }
     }
 }
 
@@ -56,11 +91,12 @@ static void window_draw_statusbar(Window* window) {
     mvprintw(
         window->rect.y + window->rect.height-1,
         window->rect.x,
-        "[-- %s --] [ %s ] [ %d:%d ]",
+        "[-- %s --] [ %s ] [ %d:%d ] [ %s ]",
         mode_str,
         filename,
         cursor_line+1,
-        cursor_col+1
+        cursor_col+1,
+        clipboard_get(window->editor.cb)
     );
 }
 

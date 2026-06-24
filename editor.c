@@ -1,7 +1,10 @@
+#include <stdlib.h>
+
 #include "common.h"
 #include "input.h"
 #include "editor.h"
 #include "buffer.h"
+#include "clipboard.h"
 
 static void editor_adjust_cursor_col(Editor* editor) {
     size_t line_length = buffer_get_line_length(editor->buffer, editor->cursor_line);
@@ -27,12 +30,18 @@ static void editor_move_down(Editor* editor) {
 }
 
 static void editor_move_left(Editor* editor) {
+    // temp
+    editor->target_col = editor->cursor_col;
+
     if (editor->cursor_col <= 0) return;
     editor->cursor_col--;
     editor->target_col = editor->cursor_col;
 }
 
 static void editor_move_right(Editor* editor) {
+    // temp
+    editor->target_col = editor->cursor_col;
+
     if (editor->cursor_col >= buffer_get_line_length(editor->buffer, editor->cursor_line)) return;
     editor->cursor_col++;
     editor->target_col = editor->cursor_col;
@@ -80,18 +89,90 @@ static void editor_delete_line(Editor* editor) {
 
 static void editor_move_to_eol(Editor* editor) {
     editor->cursor_col = buffer_get_line_length(editor->buffer, editor->cursor_line);
+
+    editor->target_col = editor->cursor_col;
+
 }
 
 static void editor_move_to_bol(Editor* editor) {
     editor->cursor_col = 0;
+
+    editor->target_col = editor->cursor_col;
 }
 
-void editor_init(Editor* editor, Buffer* buffer) {
+static void editor_delete_to_eol(Editor* editor) {
+    size_t eol = buffer_get_line_length(editor->buffer, editor->cursor_line);
+    buffer_delete_range(editor->buffer, editor->cursor_line, editor->cursor_col, eol);
+}
+
+static void editor_delete_range(Editor* editor) {
+    Point start = editor->highlight_start;
+    Point end = {editor->cursor_col, editor->cursor_line};
+
+    if ((start.y > end.y) || (start.y == end.y && start.x > end.x)) {
+        Point temp = end;
+        end = start;
+        start = temp;
+    }
+
+    if (start.y == end.y) {
+        buffer_delete_range(editor->buffer, start.y, start.x, end.x+1);
+    } else {
+        size_t eol = buffer_get_line_length(editor->buffer, start.y);
+        buffer_delete_range(editor->buffer, start.y, start.x, eol);
+        for (size_t i = start.y+1; i < end.y; i++) {
+            buffer_delete_line(editor->buffer, start.y+1);
+        }
+        buffer_delete_range(editor->buffer, start.y+1, 0, end.x+1);
+        buffer_join_with_next_line(editor->buffer, start.y);
+    }
+
+    editor->cursor_line = start.y;
+    editor->cursor_col = start.x;
+}
+
+static void editor_yank_range(Editor* editor) {
+    Point start = editor->highlight_start;
+    Point end = {editor->cursor_col, editor->cursor_line};
+
+    if ((start.y > end.y) || (start.y == end.y && start.x > end.x)) {
+        Point temp = end;
+        end = start;
+        start = temp;
+    }
+
+    // if (start.y == end.y && buffer_get_line_length(editor->buffer, start.y) == 0) {
+    //     clipboard_set(editor->cb, "");
+    //     return;
+    // }
+
+    char* yanked_str = buffer_range_to_cstr(editor->buffer, start, end);
+    clipboard_set(editor->cb, yanked_str);
+    free(yanked_str);
+}
+
+static void editor_paste(Editor* editor) {
+    if (!editor->cb->data) return;
+
+    char* current = editor->cb->data;
+    while (*current != '\0') {
+        if (*current == '\n') {
+            editor_insert_line(editor);
+        } else {
+            editor_insert_ch(editor, *current);
+        }
+        current++;
+    } 
+}
+
+void editor_init(Editor* editor, Buffer* buffer, Clipboard* cb) {
     editor->buffer = buffer;
     editor->mode = NORMAL_MODE;
     editor->cursor_line = 0;
     editor->cursor_col = 0;
     editor->target_col = 0;
+    editor->highlight_start = (Point){0, 0};
+    editor->cb = cb;
 }
 
 int editor_get_cursor_line(Editor* editor) {
@@ -126,6 +207,12 @@ static void editor_handle_command(Editor* editor, EditorCommand cmd) {
         case EDITOR_MOVE_RIGHT:
             editor_move_right(editor);
             break;
+        case EDITOR_MOVE_EOL:
+            editor_move_to_eol(editor);
+            break;
+        case EDITOR_MOVE_BOL:
+            editor_move_to_bol(editor);
+            break;
         case EDITOR_INSERT_CHAR:
             editor_insert_ch(editor, (char)cmd.ch);
             break;
@@ -148,6 +235,20 @@ static void editor_handle_command(Editor* editor, EditorCommand cmd) {
             editor_insert_line(editor);
             editor_move_up(editor);
             editor->mode = INSERT_MODE;
+            break;
+        case EDITOR_DELETE_TO_EOL:
+            editor_delete_to_eol(editor);
+            break;
+        case EDITOR_DELETE_RANGE:
+            editor_delete_range(editor);
+            editor->mode = NORMAL_MODE;
+            break;
+        case EDITOR_YANK_RANGE:
+            editor_yank_range(editor);
+            editor->mode = NORMAL_MODE;
+            break;
+        case EDITOR_PASTE:
+            editor_paste(editor);
             break;
         
         default:
@@ -174,11 +275,28 @@ static void editor_handle_normal_mode(Editor* editor, Key key, EditorCommand* cm
                 case 'l':
                     *cmd = (EditorCommand){EDITOR_MOVE_RIGHT, 0};
                     break;
+                case '$':
+                    *cmd = (EditorCommand){EDITOR_MOVE_EOL, 0};
+                    break;
+                case '0':
+                    *cmd = (EditorCommand){EDITOR_MOVE_BOL, 0};
+                    break;
                 case 'o':
                     *cmd = (EditorCommand){EDITOR_OPEN_LINE_BELLOW, 0};
                     break;
                 case 'O':
                     *cmd = (EditorCommand){EDITOR_OPEN_LINE_ABOVE, 0};
+                    break;
+                case 'D':
+                    *cmd = (EditorCommand){EDITOR_DELETE_TO_EOL, 0};
+                    break;
+                case 'v':
+                    editor->mode = VISUAL_MODE;
+                    editor->highlight_start.x = editor->cursor_col;
+                    editor->highlight_start.y = editor->cursor_line;
+                    break;
+                case 'p':
+                    *cmd = (EditorCommand){EDITOR_PASTE, 0};
                     break;
             }
             break;
@@ -191,6 +309,7 @@ static void editor_handle_normal_mode(Editor* editor, Key key, EditorCommand* cm
 static void editor_handle_insert_mode(Editor* editor, Key key, EditorCommand* cmd) {
     switch (key.type) {
         case IKEY_ESCAPE:
+            // turn this into EditorCommand
             editor->mode = NORMAL_MODE;
             break;
         case IKEY_UP:
@@ -223,6 +342,39 @@ static void editor_handle_insert_mode(Editor* editor, Key key, EditorCommand* cm
     }
 }
 
+static void editor_handle_visual_mode(Editor* editor, Key key, EditorCommand* cmd) {
+    switch (key.type) {
+        case IKEY_ESCAPE:
+            editor->mode = NORMAL_MODE;
+            break;
+        case IKEY_CHAR:
+            switch (key.ch) {
+                case 'h':
+                    *cmd = (EditorCommand){EDITOR_MOVE_LEFT, 0};
+                    break;
+                case 'j':
+                    *cmd = (EditorCommand){EDITOR_MOVE_DOWN, 0};
+                    break;
+                case 'k':
+                    *cmd = (EditorCommand){EDITOR_MOVE_UP, 0};
+                    break;
+                case 'l':
+                    *cmd = (EditorCommand){EDITOR_MOVE_RIGHT, 0};
+                    break;
+                case 'd':
+                    *cmd = (EditorCommand){EDITOR_DELETE_RANGE, 0};
+                    break;
+                case 'y':
+                    *cmd = (EditorCommand){EDITOR_YANK_RANGE, 0};
+                    break;
+            }
+            break;
+
+        default:
+            return;
+    }
+}
+
 void editor_handle_key(Editor* editor, Key key) {
     EditorCommand cmd = {EDITOR_NONE, 0};
 
@@ -234,6 +386,7 @@ void editor_handle_key(Editor* editor, Key key) {
             editor_handle_insert_mode(editor, key, &cmd);
             break;
         case VISUAL_MODE:
+            editor_handle_visual_mode(editor, key, &cmd);
             break;
 
         default:

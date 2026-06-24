@@ -6,6 +6,7 @@
 #include "buffer.h"
 #include "value.h"
 #include "editor.h"
+#include "clipboard.h"
 
 typedef struct {
     Rect rect;
@@ -15,7 +16,7 @@ typedef struct {
     int scroll_line;
 } Window;
 
-void window_init(Window* window, Rect rect, Buffer* buffer);
+void window_init(Window* window, Rect rect, Buffer* buffer, Clipboard* cb);
 void window_draw(Window* window);
 void window_handle_key(Window* window, Key key);
 void window_free(Window* window);

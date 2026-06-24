@@ -5,6 +5,7 @@
 #include "buffer.h"
 #include "window.h"
 #include "commandline.h"
+#include "clipboard.h"
 
 typedef enum {
     APP_NORMAL,
@@ -17,6 +18,7 @@ typedef struct {
     CommandLine cl;
     Buffer buffer;
     Window window;
+    Clipboard cb;
 } App;
 
 void app_init(App* app, int argc, const char* argv[]);

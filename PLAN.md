@@ -8,18 +8,19 @@ TODO
 - [x] Modes
 - [x] Command mode
 - [x] Read/write files
+- [x] Visual mode, copy, paste
+- [ ] Errors + debug mode
 - [ ] Many windows and buffers
 - [ ] Windows, splits, floats, textarea rect, number lines, statusbar
 - [ ] Window resize
+- [ ] File explorer
 - [ ] Vim motions (parser)
 - [ ] Syntax highlight + colors and themes
-- [ ] Visual mode, copy, paste
 - [ ] Line wrapping, horizontal scroll
+- [ ] Undo/redo
 - [ ] Search
 - [ ] Configs
 - [ ] Rope (opt)
 - [ ] Lua (opt)
 
 TODO TODAY
-- open with file name arg
-- buffer_save

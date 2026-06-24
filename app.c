@@ -8,18 +8,20 @@
 #include "value.h"
 #include "window.h"
 #include "commandline.h"
+#include "clipboard.h"
 
 static void app_load_file(App* app, const char* filename) {
     FILE* f = fopen(filename, "r");
 
     if (!f) {
+        // errors
         return;
     }
 
     // temp until multimple buffers
     buffer_free(&app->buffer);
     buffer_init(&app->buffer);
-    editor_init(&app->window.editor, &app->buffer);
+    editor_init(&app->window.editor, &app->buffer, &app->cb);
 
     char line[1024];
     if (app->buffer.filename != NULL) {
@@ -41,10 +43,19 @@ static void app_save_file_as(App* app, const char* filename) {
         return;
     }
 
+    char* new_name = strdup(filename);
+
+    if (!new_name) {
+        fclose(f);
+        return;
+    }
+
     if (app->buffer.filename != NULL) {
         free(app->buffer.filename);
     }
-    app->buffer.filename = strdup(filename);
+
+    app->buffer.filename = new_name;
+
     Buffer* buffer = &app->buffer;
     size_t line_count = buffer_get_line_count(buffer);
 
@@ -84,6 +95,7 @@ void app_init(App* app, int argc, const char* argv[]) {
     keypad(stdscr, TRUE);
     set_escdelay(25);
 
+    clipboard_init(&app->cb);
     commandline_init(&app->cl, (Rect){0, rows-1, cols, 1});
     if (argc == 1) {
         buffer_init(&app->buffer);
@@ -91,7 +103,7 @@ void app_init(App* app, int argc, const char* argv[]) {
         buffer_init(&app->buffer);
         app_load_file(app, argv[1]);
     }
-    window_init(&app->window, (Rect){0, 0, cols, rows}, &app->buffer);
+    window_init(&app->window, (Rect){0, 0, cols, rows}, &app->buffer, &app->cb);
 }
 
 static void app_draw(App* app) {
@@ -203,4 +215,5 @@ void app_free(App* app) {
     endwin();
     buffer_free(&app->buffer);
     window_free(&app->window);
+    clipboard_free(&app->cb);
 }

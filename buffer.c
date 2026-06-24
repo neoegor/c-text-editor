@@ -173,6 +173,20 @@ bool buffer_join_with_next_line(Buffer* buffer, size_t line) {
     return true;
 }
 
+bool buffer_delete_range(Buffer* buffer, size_t line, size_t start_col, size_t end_col) {
+    if (line >= buffer->count) return false;
+
+    GapBuffer* current = &buffer->lines[line];
+
+    size_t range_length = end_col - start_col;
+
+    for (size_t i = 0; i < range_length; i++) {
+        buffer_delete_at(buffer, line, start_col);
+    }
+
+    return true;
+}
+
 void buffer_append_line_from_cstr(Buffer* buffer, const char* str) {
     size_t len = strlen(str);
 
@@ -186,6 +200,66 @@ void buffer_append_line_from_cstr(Buffer* buffer, const char* str) {
         buffer_insert_at(buffer, buffer->count - 1, i, str[i]);
     }
 }
+
+char* buffer_range_to_cstr(Buffer* buffer, Point start, Point end) {
+    size_t len = 0;
+    size_t first_line_len = buffer_get_line_length(buffer, start.y);
+    size_t last_line_len = buffer_get_line_length(buffer, end.y);
+
+    if (start.y == end.y) {
+        if (first_line_len < end.x + 1) {
+            len += first_line_len;
+        } else {
+            len += end.x - start.x + 1;
+        }
+    } else {
+        len += first_line_len - start.x;
+        len += 1; // \n
+        for (size_t i = start.y+1; i < end.y; i++) {
+            len += buffer_get_line_length(buffer, i);
+            len += 1; // \n
+        }
+        if (last_line_len < end.x + 1) {
+            len += last_line_len;
+        } else {
+            len += end.x + 1;
+        }
+    }
+
+    char* str = ALLOCATE(char, len+1);
+    char* current = str;
+
+    if (start.y == end.y) {
+        for (size_t i = start.x; i < end.x+1 && i < last_line_len; i++) {
+            *current++ = buffer_get_char_at(buffer, start.y, i);
+        }
+    } else {
+        for (size_t i = start.x; i < first_line_len; i++) {
+            *current++ = buffer_get_char_at(buffer, start.y, i);
+        }
+        *current++ = '\n';
+
+        for (size_t line = start.y+1; line < end.y; line++) {
+            size_t eol = buffer_get_line_length(buffer, line);
+            for (size_t i = 0; i < eol; i++) {
+                *current++ = buffer_get_char_at(buffer, line, i);
+            }
+            *current++ = '\n';
+        }
+
+        for (size_t i = 0; i < end.x+1 && i < last_line_len; i++) {
+            *current++ = buffer_get_char_at(buffer, end.y, i);
+        }
+    }
+
+    str[len] = '\0';
+
+    return str;
+}
+
+// void buffer_insert_cstr(Buffer* buffer, size_t line, size_t col) {
+//
+// }
 
 void buffer_free(Buffer* buffer) {
     for (size_t i = 0; i < buffer->count; i++) {
