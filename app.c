@@ -9,6 +9,7 @@
 #include "window.h"
 #include "commandline.h"
 #include "clipboard.h"
+#include "color.h"
 
 static void app_load_file(App* app, const char* filename) {
     FILE* f = fopen(filename, "r");
@@ -89,6 +90,15 @@ void app_init(App* app, int argc, const char* argv[]) {
 
     int rows, cols;
     initscr();
+
+    if (!has_colors()) {
+        
+    }
+
+    start_color();
+    use_default_colors();
+    color_pair_init();
+
     getmaxyx(stdscr, rows, cols);
     raw();
     noecho();
@@ -199,15 +209,31 @@ static void app_handle_key(App* app, int key) {
     }
 }
 
+static void app_resize(App* app) {
+    int rows, cols;
+    getmaxyx(stdscr, rows, cols);
+    app->window.rect.width = cols;
+    app->window.rect.height = rows;
+    window_layout(&app->window);
+
+    app->cl.rect.width = cols;
+    app->cl.rect.y = rows - 1;
+}
+
 void app_run(App* app) {
     int key;
 
     while (app->running) {
+        window_layout(&app->window);
         app_draw(app);
 
         key = getch();
-        
-        app_handle_key(app, key);
+
+        if (key == KEY_RESIZE) {
+            app_resize(app);
+        } else {
+            app_handle_key(app, key);
+        }
     }
 }
 

@@ -9,10 +9,11 @@ TODO
 - [x] Command mode
 - [x] Read/write files
 - [x] Visual mode, copy, paste
+- [x] Line numbers
+- [x] Window resize
 - [ ] Errors + debug mode
 - [ ] Many windows and buffers
-- [ ] Windows, splits, floats, textarea rect, number lines, statusbar
-- [ ] Window resize
+- [ ] Windows, splits, floats
 - [ ] File explorer
 - [ ] Vim motions (parser)
 - [ ] Syntax highlight + colors and themes
@@ -23,4 +24,3 @@ TODO
 - [ ] Rope (opt)
 - [ ] Lua (opt)
 
-TODO TODAY
